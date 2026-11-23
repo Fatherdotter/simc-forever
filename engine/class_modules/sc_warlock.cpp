@@ -53,6 +53,7 @@ struct warlock_t final : public parse_player_effects_t
     spell_ranks_t firebolt;
     spell_ranks_t immolate;
     spell_ranks_t life_tap;
+    spell_ranks_t searing_pain;
     spell_ranks_t shadow_bolt;
   } rank;
 
@@ -126,6 +127,16 @@ struct shadow_bolt_t : public warlock_spell_t
 {
   shadow_bolt_t( warlock_t* player, util::string_view options_str ) :
     warlock_spell_t( "shadow_bolt", player, player->rank.shadow_bolt.find_rank()->spell() )
+  {
+    parse_options( options_str );
+  }
+};
+
+// Searing Pain
+struct searing_pain_t : public warlock_spell_t
+{
+  searing_pain_t( warlock_t* player, util::string_view options_str ) :
+    warlock_spell_t( "searing_pain", player, player->rank.searing_pain.find_rank()->spell() )
   {
     parse_options( options_str );
   }
@@ -385,6 +396,8 @@ action_t* warlock_t::create_action( util::string_view name, util::string_view op
 {
   if ( name == "shadow_bolt" )
     return new shadow_bolt_t( this, options_str );
+  if ( name == "searing_pain" )
+    return new searing_pain_t( this, options_str );
   if ( name == "immolate" )
     return new immolate_t( this, options_str );
   if ( name == "corruption" )
@@ -486,6 +499,15 @@ void warlock_t::init_spells()
     spell_container_t().set_spell( 11687 ),
     spell_container_t().set_spell( 11688 ),
     spell_container_t().set_spell( 11689 ),
+  };
+
+  rank.searing_pain = { this,
+    spell_container_t().set_spell(  5676 ),
+    spell_container_t().set_spell( 17919 ),
+    spell_container_t().set_spell( 17920 ),
+    spell_container_t().set_spell( 17921 ),
+    spell_container_t().set_spell( 17922 ),
+    spell_container_t().set_spell( 17923 ),
   };
 
   rank.shadow_bolt = { this,
