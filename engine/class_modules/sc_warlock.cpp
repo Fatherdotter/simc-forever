@@ -49,6 +49,7 @@ struct warlock_t final : public parse_player_effects_t
     spell_ranks_t bane_of_agony;
     spell_ranks_t corruption;
     spell_ranks_t curse_of_the_elements;
+    spell_ranks_t drain_life;
     spell_ranks_t firebolt;
     spell_ranks_t immolate;
     spell_ranks_t life_tap;
@@ -198,6 +199,18 @@ struct curse_of_the_elements_t : public warlock_spell_t
 
     if ( result_is_hit( s->result ) )
       s->target->debuffs.curse_of_the_elements->trigger( 1, data().effectN( 2 ).percent(), -1, data().duration() );
+  }
+};
+
+// Drain Life
+// TODO: Heal the caster for the damage dealt
+struct drain_life_t : public warlock_spell_t
+{
+  drain_life_t( warlock_t* player, util::string_view options_str ) :
+    warlock_spell_t( "drain_life", player, player->rank.drain_life.find_rank()->spell() )
+  {
+    parse_options( options_str );
+    channeled = true;
   }
 };
 
@@ -380,6 +393,8 @@ action_t* warlock_t::create_action( util::string_view name, util::string_view op
     return new bane_of_agony_t( this, options_str );
   if ( name == "curse_of_the_elements" )
     return new curse_of_the_elements_t( this, options_str );
+  if ( name == "drain_life" )
+    return new drain_life_t( this, options_str );
   if ( name == "life_tap" )
     return new life_tap_t( this, options_str );
 
@@ -432,6 +447,15 @@ void warlock_t::init_spells()
     spell_container_t().set_spell( 1311676 ),
     spell_container_t().set_spell( 1311677 ),
     spell_container_t().set_spell( 1311680 ),
+  };
+
+  rank.drain_life = { this,
+    spell_container_t().set_spell(   689 ),
+    spell_container_t().set_spell(   699 ),
+    spell_container_t().set_spell(   709 ),
+    spell_container_t().set_spell(  7651 ),
+    spell_container_t().set_spell( 11699 ),
+    spell_container_t().set_spell( 11700 ),
   };
 
   rank.firebolt = { this,
