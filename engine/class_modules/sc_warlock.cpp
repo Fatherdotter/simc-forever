@@ -58,6 +58,7 @@ struct warlock_t final : public parse_player_effects_t
     spell_ranks_t rain_of_fire;
     spell_ranks_t searing_pain;
     spell_ranks_t shadow_bolt;
+    spell_ranks_t soul_fire;
   } rank;
 
 private:
@@ -200,6 +201,16 @@ struct searing_pain_t : public warlock_spell_t
 {
   searing_pain_t( warlock_t* player, util::string_view options_str ) :
     warlock_spell_t( "searing_pain", player, player->rank.searing_pain.find_rank()->spell() )
+  {
+    parse_options( options_str );
+  }
+};
+
+// Soul Fire
+struct soul_fire_t : public warlock_spell_t
+{
+  soul_fire_t( warlock_t* player, util::string_view options_str ) :
+    warlock_spell_t( "soul_fire", player, player->rank.soul_fire.find_rank()->spell() )
   {
     parse_options( options_str );
   }
@@ -476,6 +487,8 @@ action_t* warlock_t::create_action( util::string_view name, util::string_view op
     return new rain_of_fire_t( this, options_str );
   if ( name == "searing_pain" )
     return new searing_pain_t( this, options_str );
+  if ( name == "soul_fire" )
+    return new soul_fire_t( this, options_str );
   if ( name == "immolate" )
     return new immolate_t( this, options_str );
   if ( name == "corruption" )
@@ -621,6 +634,11 @@ void warlock_t::init_spells()
     spell_container_t().set_spell( 11660 ),
     spell_container_t().set_spell( 11661 ),
     spell_container_t().set_spell( 25307 ),
+  };
+
+  rank.soul_fire = { this,
+    spell_container_t().set_spell(  6353 ),
+    spell_container_t().set_spell( 17924 ),
   };
 
   parse_all_class_passives();
