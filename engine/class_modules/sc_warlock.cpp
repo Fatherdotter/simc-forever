@@ -11,6 +11,7 @@ struct warlock_td_t final : public actor_target_data_t
 {
   struct dots_t
   {
+    dot_t* bane_of_agony = nullptr;
     dot_t* corruption = nullptr;
     dot_t* immolate = nullptr;
   } dots;
@@ -45,6 +46,7 @@ struct warlock_t final : public parse_player_effects_t
 
   struct
   {
+    spell_ranks_t bane_of_agony;
     spell_ranks_t corruption;
     spell_ranks_t firebolt;
     spell_ranks_t immolate;
@@ -58,7 +60,8 @@ private:
 
 warlock_td_t::warlock_td_t( player_t* target, warlock_t& p ) : actor_target_data_t( target, &p )
 {
-  dots.corruption = target->get_dot( "corruption", &p );
+  dots.bane_of_agony = target->get_dot( "bane_of_agony", &p );
+  dots.corruption    = target->get_dot( "corruption", &p );
   dots.immolate   = target->get_dot( "immolate", &p );
 }
 
@@ -139,6 +142,36 @@ struct corruption_t : public warlock_spell_t
     warlock_spell_t( "corruption", player, player->rank.corruption.find_rank()->spell() )
   {
     parse_options( options_str );
+  }
+};
+
+// Bane of Agony
+// TODO: Only one Bane per warlock can be active on a target, implement with Bane of Doom
+struct bane_of_agony_t : public warlock_spell_t
+{
+  bane_of_agony_t( warlock_t* player, util::string_view options_str ) :
+    warlock_spell_t( "bane_of_agony", player, player->rank.bane_of_agony.find_rank()->spell() )
+  {
+    parse_options( options_str );
+    dot_behavior = DOT_CLIP;
+  }
+
+  // Base damage ramps by thirds of the duration, spell power does not
+  double base_ta( const action_state_t* s ) const override
+  {
+    double b = warlock_spell_t::base_ta( s );
+
+    const dot_t* d = find_dot( s->target );
+    if ( !d || !d->is_ticking() )
+      return b;
+
+    timespan_t elapsed = d->duration() - d->remains();
+
+    if ( 3 * elapsed <= d->duration() )
+      return b * 0.5;
+    if ( 3 * elapsed <= 2 * d->duration() )
+      return b;
+    return b * 1.5;
   }
 };
 
@@ -317,6 +350,8 @@ action_t* warlock_t::create_action( util::string_view name, util::string_view op
     return new immolate_t( this, options_str );
   if ( name == "corruption" )
     return new corruption_t( this, options_str );
+  if ( name == "bane_of_agony" )
+    return new bane_of_agony_t( this, options_str );
   if ( name == "life_tap" )
     return new life_tap_t( this, options_str );
 
@@ -344,6 +379,15 @@ void warlock_t::init_base_stats()
 void warlock_t::init_spells()
 {
   parse_player_effects_t::init_spells();
+
+  rank.bane_of_agony = { this,
+    spell_container_t().set_spell(   980 ),
+    spell_container_t().set_spell(  1014 ),
+    spell_container_t().set_spell(  6217 ),
+    spell_container_t().set_spell( 11711 ),
+    spell_container_t().set_spell( 11712 ),
+    spell_container_t().set_spell( 11713 ),
+  };
 
   rank.corruption = { this,
     spell_container_t().set_spell(   172 ),
