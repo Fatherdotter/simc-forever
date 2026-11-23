@@ -52,6 +52,7 @@ struct warlock_t final : public parse_player_effects_t
     spell_ranks_t drain_life;
     spell_ranks_t drain_soul;
     spell_ranks_t firebolt;
+    spell_ranks_t hellfire;
     spell_ranks_t immolate;
     spell_ranks_t life_tap;
     spell_ranks_t rain_of_fire;
@@ -131,6 +132,43 @@ struct shadow_bolt_t : public warlock_spell_t
     warlock_spell_t( "shadow_bolt", player, player->rank.shadow_bolt.find_rank()->spell() )
   {
     parse_options( options_str );
+  }
+};
+
+// Hellfire
+struct hellfire_tick_t : public warlock_spell_t
+{
+  hellfire_tick_t( warlock_t* player, const spell_data_t* s ) :
+    warlock_spell_t( "hellfire_tick", player, s->effectN( 1 ).trigger() )
+  {
+    background = dual = true;
+    aoe = -1;
+  }
+};
+
+struct hellfire_t : public warlock_spell_t
+{
+  hellfire_t( warlock_t* player, util::string_view options_str ) :
+    warlock_spell_t( "hellfire", player, player->rank.hellfire.find_rank()->spell() )
+  {
+    parse_options( options_str );
+    channeled = true;
+    may_miss = may_crit = false;
+
+    // Effect 2 burns the caster, not the target
+    base_td = 0;
+    spell_power_mod.tick = 0;
+
+    tick_action = new hellfire_tick_t( player, &data() );
+  }
+
+  void tick( dot_t* d ) override
+  {
+    warlock_spell_t::tick( d );
+
+    const auto& burn = data().effectN( 2 );
+    player->resource_loss( RESOURCE_HEALTH, burn.average( player ) + burn.sp_coeff() * composite_total_spell_power(),
+                           nullptr, this );
   }
 };
 
@@ -432,6 +470,8 @@ action_t* warlock_t::create_action( util::string_view name, util::string_view op
 {
   if ( name == "shadow_bolt" )
     return new shadow_bolt_t( this, options_str );
+  if ( name == "hellfire" )
+    return new hellfire_t( this, options_str );
   if ( name == "rain_of_fire" )
     return new rain_of_fire_t( this, options_str );
   if ( name == "searing_pain" )
@@ -526,6 +566,12 @@ void warlock_t::init_spells()
     spell_container_t().set_spell(  7802 ),  // 38
     spell_container_t().set_spell( 11762 ),  // 48
     spell_container_t().set_spell( 11763 ),  // 58
+  };
+
+  rank.hellfire = { this,
+    spell_container_t().set_spell(  1949 ),
+    spell_container_t().set_spell( 11683 ),
+    spell_container_t().set_spell( 11684 ),
   };
 
   rank.immolate = { this,
