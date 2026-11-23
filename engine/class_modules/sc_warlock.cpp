@@ -48,6 +48,7 @@ struct warlock_t final : public parse_player_effects_t
     spell_ranks_t corruption;
     spell_ranks_t firebolt;
     spell_ranks_t immolate;
+    spell_ranks_t life_tap;
     spell_ranks_t shadow_bolt;
   } rank;
 
@@ -138,6 +139,31 @@ struct corruption_t : public warlock_spell_t
     warlock_spell_t( "corruption", player, player->rank.corruption.find_rank()->spell() )
   {
     parse_options( options_str );
+  }
+};
+
+// Life Tap
+struct life_tap_t : public warlock_spell_t
+{
+  gain_t* gain;
+
+  life_tap_t( warlock_t* player, util::string_view options_str ) :
+    warlock_spell_t( "life_tap", player, player->rank.life_tap.find_rank()->spell() ),
+    gain( player->get_gain( "life_tap" ) )
+  {
+    parse_options( options_str );
+    harmful = false;
+    target = player;
+  }
+
+  void execute() override
+  {
+    warlock_spell_t::execute();
+
+    double amount = data().effectN( 1 ).average( player ) + player->cache.spirit();
+
+    player->resource_loss( RESOURCE_HEALTH, amount, nullptr, this );
+    player->resource_gain( RESOURCE_MANA, amount, gain, this );
   }
 };
 
@@ -291,6 +317,8 @@ action_t* warlock_t::create_action( util::string_view name, util::string_view op
     return new immolate_t( this, options_str );
   if ( name == "corruption" )
     return new corruption_t( this, options_str );
+  if ( name == "life_tap" )
+    return new life_tap_t( this, options_str );
 
   if ( name == "summon_imp" )
     return new summon_imp_t( this, options_str );
@@ -346,6 +374,15 @@ void warlock_t::init_spells()
     spell_container_t().set_spell( 11667 ),
     spell_container_t().set_spell( 11668 ),
     spell_container_t().set_spell( 25309 ),
+  };
+
+  rank.life_tap = { this,
+    spell_container_t().set_spell(  1454 ),
+    spell_container_t().set_spell(  1455 ),
+    spell_container_t().set_spell(  1456 ),
+    spell_container_t().set_spell( 11687 ),
+    spell_container_t().set_spell( 11688 ),
+    spell_container_t().set_spell( 11689 ),
   };
 
   rank.shadow_bolt = { this,
