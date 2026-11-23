@@ -53,6 +53,7 @@ struct warlock_t final : public parse_player_effects_t
     spell_ranks_t firebolt;
     spell_ranks_t immolate;
     spell_ranks_t life_tap;
+    spell_ranks_t rain_of_fire;
     spell_ranks_t searing_pain;
     spell_ranks_t shadow_bolt;
   } rank;
@@ -129,6 +130,29 @@ struct shadow_bolt_t : public warlock_spell_t
     warlock_spell_t( "shadow_bolt", player, player->rank.shadow_bolt.find_rank()->spell() )
   {
     parse_options( options_str );
+  }
+};
+
+// Rain of Fire
+struct rain_of_fire_tick_t : public warlock_spell_t
+{
+  rain_of_fire_tick_t( warlock_t* player ) :
+    warlock_spell_t( "rain_of_fire_tick", player, player->rank.rain_of_fire.find_rank()->attack() )
+  {
+    background = dual = true;
+    aoe = -1;
+  }
+};
+
+struct rain_of_fire_t : public warlock_spell_t
+{
+  rain_of_fire_t( warlock_t* player, util::string_view options_str ) :
+    warlock_spell_t( "rain_of_fire", player, player->rank.rain_of_fire.find_rank()->spell() )
+  {
+    parse_options( options_str );
+    channeled = true;
+    may_miss = may_crit = false;
+    tick_action = new rain_of_fire_tick_t( player );
   }
 };
 
@@ -396,6 +420,8 @@ action_t* warlock_t::create_action( util::string_view name, util::string_view op
 {
   if ( name == "shadow_bolt" )
     return new shadow_bolt_t( this, options_str );
+  if ( name == "rain_of_fire" )
+    return new rain_of_fire_t( this, options_str );
   if ( name == "searing_pain" )
     return new searing_pain_t( this, options_str );
   if ( name == "immolate" )
@@ -499,6 +525,13 @@ void warlock_t::init_spells()
     spell_container_t().set_spell( 11687 ),
     spell_container_t().set_spell( 11688 ),
     spell_container_t().set_spell( 11689 ),
+  };
+
+  rank.rain_of_fire = { this,
+    spell_container_t().set_spell(  5740 ).set_attack( 1282380 ),
+    spell_container_t().set_spell(  6219 ).set_attack( 1282383 ),
+    spell_container_t().set_spell( 11677 ).set_attack( 1282384 ),
+    spell_container_t().set_spell( 11678 ).set_attack( 1282385 ),
   };
 
   rank.searing_pain = { this,
