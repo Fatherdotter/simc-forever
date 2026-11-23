@@ -50,6 +50,7 @@ struct warlock_t final : public parse_player_effects_t
     spell_ranks_t corruption;
     spell_ranks_t curse_of_the_elements;
     spell_ranks_t drain_life;
+    spell_ranks_t drain_soul;
     spell_ranks_t firebolt;
     spell_ranks_t immolate;
     spell_ranks_t life_tap;
@@ -249,6 +250,17 @@ struct drain_life_t : public warlock_spell_t
   }
 };
 
+// Drain Soul
+struct drain_soul_t : public warlock_spell_t
+{
+  drain_soul_t( warlock_t* player, util::string_view options_str ) :
+    warlock_spell_t( "drain_soul", player, player->rank.drain_soul.find_rank()->spell() )
+  {
+    parse_options( options_str );
+    channeled = true;
+  }
+};
+
 // Life Tap
 struct life_tap_t : public warlock_spell_t
 {
@@ -434,6 +446,8 @@ action_t* warlock_t::create_action( util::string_view name, util::string_view op
     return new curse_of_the_elements_t( this, options_str );
   if ( name == "drain_life" )
     return new drain_life_t( this, options_str );
+  if ( name == "drain_soul" )
+    return new drain_soul_t( this, options_str );
   if ( name == "life_tap" )
     return new life_tap_t( this, options_str );
 
@@ -495,6 +509,13 @@ void warlock_t::init_spells()
     spell_container_t().set_spell(  7651 ),
     spell_container_t().set_spell( 11699 ),
     spell_container_t().set_spell( 11700 ),
+  };
+
+  rank.drain_soul = { this,
+    spell_container_t().set_spell(  1120 ),
+    spell_container_t().set_spell(  8288 ),
+    spell_container_t().set_spell(  8289 ),
+    spell_container_t().set_spell( 11675 ),
   };
 
   rank.firebolt = { this,
