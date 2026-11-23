@@ -5,12 +5,27 @@
 
 namespace warlock
 {
-struct warlock_t final : public player_t
+struct warlock_t;
+
+struct warlock_td_t final : public actor_target_data_t
+{
+  struct dots_t
+  {
+    dot_t* corruption = nullptr;
+    dot_t* immolate = nullptr;
+  } dots;
+
+  warlock_td_t( player_t* target, warlock_t& p );
+};
+
+struct warlock_t final : public parse_player_effects_t
 {
   warlock_t( sim_t* sim, util::string_view name, race_e r = RACE_NONE ) :
-    player_t( sim, WARLOCK, name, r ) {}
+    parse_player_effects_t( sim, WARLOCK, name, r ) {}
 
   resource_e primary_resource() const override { return RESOURCE_MANA; }
+
+  warlock_td_t* get_target_data( player_t* target ) const override;
 
   std::string default_potion() const override   { return warlock_apl::potion( this ); }
   std::string default_flask() const override    { return warlock_apl::flask( this ); }
@@ -35,7 +50,26 @@ struct warlock_t final : public player_t
     spell_ranks_t immolate;
     spell_ranks_t shadow_bolt;
   } rank;
+
+private:
+  target_specific_t<warlock_td_t> _target_data;
 };
+
+warlock_td_t::warlock_td_t( player_t* target, warlock_t& p ) : actor_target_data_t( target, &p )
+{
+  dots.corruption = target->get_dot( "corruption", &p );
+  dots.immolate   = target->get_dot( "immolate", &p );
+}
+
+warlock_td_t* warlock_t::get_target_data( player_t* target ) const
+{
+  warlock_td_t*& td = _target_data[ target ];
+  if ( !td )
+  {
+    td = new warlock_td_t( target, const_cast<warlock_t&>( *this ) );
+  }
+  return td;
+}
 
 struct warlock_module_t : public module_t
 {
@@ -261,19 +295,19 @@ action_t* warlock_t::create_action( util::string_view name, util::string_view op
   if ( name == "summon_imp" )
     return new summon_imp_t( this, options_str );
 
-  return player_t::create_action( name, options_str );
+  return parse_player_effects_t::create_action( name, options_str );
 }
 
 void warlock_t::create_pets()
 {
-  player_t::create_pets();
+  parse_player_effects_t::create_pets();
 
   pets.imp = new pets::imp::imp_pet_t( sim, this );
 }
 
 void warlock_t::init_base_stats()
 {
-  player_t::init_base_stats();
+  parse_player_effects_t::init_base_stats();
 
   base.attack_crit_chance = get_passive_player_value(0.02, "all_crit");
   base.spell_crit_chance = get_passive_player_value(0.01701, "all_crit");
@@ -281,7 +315,7 @@ void warlock_t::init_base_stats()
 
 void warlock_t::init_spells()
 {
-  player_t::init_spells();
+  parse_player_effects_t::init_spells();
 
   rank.corruption = { this,
     spell_container_t().set_spell(   172 ),
@@ -335,14 +369,14 @@ void warlock_t::init_action_list()
 {
   if ( !action_list_str.empty() )
   {
-    player_t::init_action_list();
+    parse_player_effects_t::init_action_list();
     return;
   }
 
   clear_action_priority_lists();
   warlock_apl::warlock( this );
   use_default_action_list = true;
-  player_t::init_action_list();
+  parse_player_effects_t::init_action_list();
 }
 
 }  // namespace warlock
