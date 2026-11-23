@@ -48,6 +48,7 @@ struct warlock_t final : public parse_player_effects_t
   {
     spell_ranks_t bane_of_agony;
     spell_ranks_t corruption;
+    spell_ranks_t curse_of_the_elements;
     spell_ranks_t firebolt;
     spell_ranks_t immolate;
     spell_ranks_t life_tap;
@@ -175,6 +176,28 @@ struct bane_of_agony_t : public warlock_spell_t
     if ( 3 * elapsed <= 2 * d->duration() )
       return b;
     return b * 1.5;
+  }
+};
+
+// Curse of the Elements
+// TODO: Only one Curse per warlock can be active on a target, implement with the next Curse
+// TODO: Resistances appear not yet implemented, implement or confirm
+// TODO: Confirm in-game and in sim pierce/lower/reduce functionality
+struct curse_of_the_elements_t : public warlock_spell_t
+{
+  curse_of_the_elements_t( warlock_t* player, util::string_view options_str ) :
+    warlock_spell_t( "curse_of_the_elements", player, player->rank.curse_of_the_elements.find_rank()->spell() )
+  {
+    parse_options( options_str );
+    background = sim->overrides.curse_of_the_elements != 0;
+  }
+
+  void impact( action_state_t* s ) override
+  {
+    warlock_spell_t::impact( s );
+
+    if ( result_is_hit( s->result ) )
+      s->target->debuffs.curse_of_the_elements->trigger( 1, data().effectN( 2 ).percent(), -1, data().duration() );
   }
 };
 
@@ -355,6 +378,8 @@ action_t* warlock_t::create_action( util::string_view name, util::string_view op
     return new corruption_t( this, options_str );
   if ( name == "bane_of_agony" )
     return new bane_of_agony_t( this, options_str );
+  if ( name == "curse_of_the_elements" )
+    return new curse_of_the_elements_t( this, options_str );
   if ( name == "life_tap" )
     return new life_tap_t( this, options_str );
 
@@ -400,6 +425,13 @@ void warlock_t::init_spells()
     spell_container_t().set_spell( 11671 ),
     spell_container_t().set_spell( 11672 ),
     spell_container_t().set_spell( 25311 ),
+  };
+
+  rank.curse_of_the_elements = { this,
+    spell_container_t().set_spell(  440892 ),
+    spell_container_t().set_spell( 1311676 ),
+    spell_container_t().set_spell( 1311677 ),
+    spell_container_t().set_spell( 1311680 ),
   };
 
   rank.firebolt = { this,
