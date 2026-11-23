@@ -104,7 +104,11 @@ public:
   using base_t = warlock_action_t<Base>;
 
   template <typename... Args>
-  warlock_action_t( Args&&... args ) : ab( std::forward<Args>( args )... ) {}
+  warlock_action_t( Args&&... args ) : ab( std::forward<Args>( args )... )
+  {
+    // Recasting a dot restarts it
+    this->dot_behavior = DOT_CLIP;
+  }
 
   warlock_t* p()
   { return debug_cast<warlock_t*>( this->player ); }
@@ -153,7 +157,6 @@ struct bane_of_agony_t : public warlock_spell_t
     warlock_spell_t( "bane_of_agony", player, player->rank.bane_of_agony.find_rank()->spell() )
   {
     parse_options( options_str );
-    dot_behavior = DOT_CLIP;
   }
 
   // Base damage ramps by thirds of the duration, spell power does not
